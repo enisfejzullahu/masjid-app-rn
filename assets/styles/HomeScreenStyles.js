@@ -1,0 +1,463 @@
+import { StyleSheet } from "react-native";
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: "#fff",
+    flex: 1,
+  },
+  imageBackground: {
+    width: "100%",
+    height: 300,
+    justifyContent: "flex-end",
+    tintColor: "cyan",
+  },
+  gradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  content: {
+    padding: 20,
+    alignItems: "center",
+    top: 60,
+  },
+  title: {
+    fontSize: 24,
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  subtitle: {
+    color: "#000",
+    fontFamily: "Montserrat_700Bold",
+    marginTop: 30,
+    marginBottom: 12,
+    left: 20,
+    fontSize: 18,
+  },
+  subtitle2: {
+    color: "#000",
+    fontFamily: "Montserrat_700Bold",
+    marginTop: 30,
+    marginBottom: 12,
+    left: 20,
+    fontSize: 20,
+  },
+  menuIconContainer: {
+    position: "absolute",
+    right: 30,
+  },
+  menuIcon: {
+    // Add styles if needed
+    top: 15,
+  },
+  infoCardContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    bottom: 80,
+  },
+  prayerTimesContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    width: "90%",
+    marginHorizontal: 10,
+    left: 5,
+  },
+  prayerTimeRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    maxWidth: 400,
+  },
+  divider: {
+    width: "90%",
+    height: 1,
+    backgroundColor: "#06A85D",
+    left: "5%",
+    marginTop: 30,
+  },
+  notes: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    marginTop: 10,
+  },
+  smalldivider: {
+    width: "80%",
+    height: 1,
+    backgroundColor: "#06A85D",
+    marginVertical: 10,
+  },
+  text: {
+    fontSize: 16,
+    fontFamily: "Montserrat_600SemiBold",
+    color: "#000",
+    textAlign: "center",
+  },
+  calendarButton: {
+    backgroundColor: "#fff",
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    marginTop: 10,
+    alignSelf: "center",
+    justifyContent: "center",
+    alignItems: "center",
+    width: "80%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  calendarButtonText: {
+    color: "#06A85D",
+    fontSize: 18,
+    fontFamily: "Montserrat_700Bold",
+  },
+  donationsButton: {
+    backgroundColor: "#fff",
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    marginTop: 5,
+    alignSelf: "center",
+    justifyContent: "center",
+    alignItems: "center",
+    width: "90%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  donationsButtonText: {
+    color: "#06A85D",
+    fontSize: 20,
+    fontFamily: "Montserrat_700Bold",
+  },
+  announcementHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  moreText: {
+    fontSize: 16,
+    color: "#06A85D",
+    fontFamily: "Montserrat_600SemiBold",
+    right: 20,
+    top: 10,
+  },
+  announcementCard: {
+    padding: 16,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+    marginTop: 10,
+    width: "90%",
+    alignSelf: "center",
+  },
+  announcementDateContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  announcementDate: {
+    fontSize: 18,
+    color: "#06A85D",
+    fontFamily: "Montserrat_600SemiBold",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    alignContent: "center",
+  },
+  icon: {
+    marginRight: 8,
+  },
+  announcementText: {
+    marginTop: 8,
+    fontSize: 18,
+    color: "#000",
+    fontFamily: "Montserrat_400Regular",
+    width: "90%",
+  },
+  announcementImage: {
+    width: "100%", // or a specific width
+    height: 300, // or a specific height
+    borderRadius: 10, // optional: for rounded corners
+    marginTop: 10,
+  },
+  readMoreText: {
+    marginTop: 15,
+    fontSize: 15,
+    color: "#00ADEF",
+    fontFamily: "Montserrat_600SemiBold",
+  },
+  eventCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    backgroundColor: "#FFF",
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+    marginTop: 10,
+    width: "90%",
+    alignSelf: "center",
+  },
+  eventDetails: {
+    flex: 1,
+  },
+  eventTitle: {
+    fontSize: 20,
+    color: "#333",
+    fontFamily: "Montserrat_600SemiBold",
+  },
+  eventDateTime: {
+    fontSize: 16,
+    color: "#555",
+    fontFamily: "Montserrat_500Medium",
+    marginTop: 4,
+  },
+  eventLogo: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  noEventsText: {
+    fontSize: 16,
+    color: "gray",
+    textAlign: "center",
+    padding: 20
+
+  },
+  historyCard: {
+    width: "90%",
+    backgroundColor: "#FFF",
+    borderRadius: 10,
+    paddingTop: 0,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+    alignItems: "center",
+    alignSelf: "center",
+  },
+  image: {
+    width: "100%",
+    height: 200,
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  historyCardTitle: {
+    fontSize: 20,
+    fontFamily: "Montserrat_600SemiBold",
+    color: "#000",
+    marginBottom: 15,
+  },
+  historyCardText: {
+    fontSize: 16,
+    fontFamily: "Montserrat_400Regular",
+    color: "#000",
+    textAlign: "center",
+    marginBottom: 12,
+    width: "90%",
+  },
+  readAllButton: {
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    width: "80%",
+    marginTop: 10,
+    marginBottom: 20,
+    alignItems: "center",
+  },
+  readAllButtonText: {
+    fontSize: 16,
+    fontFamily: "Montserrat_700Bold",
+    color: "#06A85D",
+  },
+  noHistoryText: {
+    fontSize: 16,
+    color: "gray",
+    textAlign: "center",
+    margin: 10,
+    alignSelf: "center",
+    padding: 20,
+  },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    backgroundColor: "#f8f8f8",
+  },
+  swiperImage: {
+    width: "100%",
+    height: 200,
+  },
+  overlay: {
+    flex: 1,
+    justifyContent: "center",
+    padding: 16,
+  },
+  placeholder: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  message: {
+    textAlign: "center",
+    fontSize: 18,
+    color: "#333",
+    padding: 16,
+  },
+  errorText: {
+    color: "red",
+    textAlign: "center",
+    padding: 16,
+  },
+  cardsContainer: {
+    marginTop: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center", // Centers content vertically
+    alignItems: "center", // Centers content horizontally
+    backgroundColor: "#fff", // Background color
+  },
+  topBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: "transparent", // Or any background color you prefer
+    zIndex: 10,
+  },
+  menuIconTop: {
+    top: 40,
+    marginRight: 16,
+  },
+  paginationDotsTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    top: 40,
+    left: 16,
+  },
+  stickyHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "#06A85D",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    zIndex: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    height: 90,
+  },
+  menuIcon: {
+    // Styles for the menu icon
+  },
+  menuIconH: {
+    marginRight: 16,
+    top: 15,
+  },
+  paginationDots: {
+    flexDirection: "row",
+    alignItems: "center",
+    left: 16,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "gray",
+    margin: 4,
+  },
+  activeDot: {
+    backgroundColor: "#06A85D",
+  },
+  dotH: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "gray",
+    margin: 4,
+    top: 15,
+  },
+  activeDotH: {
+    backgroundColor: "white",
+  },
+  mainContainer: {
+    flex: 1,
+    justifyContent: "flex-start", // Positions the header at the top
+    alignItems: "center",
+    padding: 20,
+  },
+  headerContainer: {
+    position: "absolute", // Fixes the header to the top
+    top: 0,
+    height: 100, // Adjust the height as needed
+    zIndex: 1, // Ensures it's on top
+  },
+  centerContent: {
+    flex: 1,
+    justifyContent: "center", // Centers the content vertically
+    alignItems: "center",
+    marginTop: 100, // Pushes content down to avoid overlap with the header
+  },
+  mainMessage: {
+    fontSize: 18,
+    fontFamily: "Montserrat_700Bold",
+    color: "#333",
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  subMessage: {
+    fontSize: 15,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 20,
+    fontFamily: "Montserrat_400Regular",
+  },
+  findMosquesButton: {
+    backgroundColor: "#06A85D",
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  findMosquesButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontFamily: "Montserrat_700Bold",
+  },
+});
+
+export default styles;

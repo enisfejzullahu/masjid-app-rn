@@ -2,8 +2,9 @@
 //const API_URL = 'http://10.0.2.2:3000';
 
 // For iOS Simulator or change to your computer's local IP address for physical devices
-const API_URL = "http://192.168.100.33:3000";
-// const API_URL = "http://192.168.100.7:3000";
+// const API_URL = "http://192.168.100.33:3000"; SHPI
+const API_URL = "https://masjid-app-7f88783a8532.herokuapp.com"; //FINAL
+// const API_URL = "http://192.168.100.7:3000"; // Banese
 
 import storage from "./Storage";
 import PrayerTimesKS from "../database/PrayerTimesKS.json";
@@ -130,7 +131,6 @@ export const getDonationTypes = async (mosqueId) => {
     return null;
   }
 
-
   try {
     const response = await fetch(`${API_URL}/mosques/${mosqueId}/donacionet`);
 
@@ -224,5 +224,18 @@ export const getHistoriku = async (mosqueId) => {
     return data;
   } catch (error) {
     return { message: "Error fetching historiku." };
+  }
+};
+
+// Function to save token to the backend
+export const saveTokenToBackend = async (userId, token) => {
+  try {
+    await fetch(`${API_URL}/send-notification-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, expoPushToken: token }),
+    });
+  } catch (error) {
+    console.error("Error saving push token:", error);
   }
 };

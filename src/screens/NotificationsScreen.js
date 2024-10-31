@@ -1,22 +1,102 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, Switch } from "react-native";
 import styles from "../../assets/styles/NotificationsScreenStyles";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Notifications from "expo-notifications";
 
 import BackIconGreen from "../../assets/SVG/BackIconGreen";
 import ShapesTop from "../../assets/SVG/ShapesTop";
 import BellFilledIcon from "../../assets/SVG/BellFilledIcon";
-import VolumeOnIcon from "../../assets/SVG/VolumeOnIcon";
-import VolumeOffIcon from "../../assets/SVG/VolumeOffIcon";
+
+// const API_URL = "http://192.168.100.33:3000"; SHPI
+const API_URL = "https://masjid-app-7f88783a8532.herokuapp.com"; //FINAL
+// const API_URL = "http://192.168.100.7:3000"; // Banese
 
 const NotificationsScreen = ({ navigation }) => {
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [azanMode, setAzanMode] = useState("withAzan"); // withAzan or withoutAzan
+  const [notificationsDisabled, setNotificationsDisabled] = useState(false);
 
-  const toggleNotifications = () => setNotificationsEnabled((prev) => !prev);
+  // Function to request notification permissions and fetch the token
+  const requestPermissionsAndFetchToken = async () => {
+    const storedToken = await AsyncStorage.getItem("expoPushToken");
+    if (storedToken) {
+      console.log("Using stored push notification token:", storedToken);
+      setNotificationPreference(storedToken, notificationsDisabled);
+      return storedToken;
+    }
 
-  const handleAzanSelect = (mode) => {
-    setAzanMode(mode);
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== "granted") {
+      alert("Failed to get push token for push notifications!");
+      return;
+    }
+
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    console.log("Push notification token:", token);
+
+    await AsyncStorage.setItem("expoPushToken", token);
+    setNotificationPreference(token, notificationsDisabled);
+    return token;
   };
+
+  // Function to set notification preference in the backend
+  const setNotificationPreference = async (expoPushToken, disabled) => {
+    try {
+      const response = await axios.post(
+        `${API_URL}/update-notification-preference`,
+        {
+          expoPushToken,
+          disabled,
+        }
+      );
+      console.log(response.data); // Log response data
+    } catch (error) {
+      console.error("Error updating notification preference:", error);
+    }
+  };
+
+  // Function to toggle notifications and update state
+  const toggleNotifications = async () => {
+    const newStatus = !notificationsDisabled;
+    setNotificationsDisabled(newStatus);
+
+    const userNotificationToken = await AsyncStorage.getItem("expoPushToken");
+    if (userNotificationToken) {
+      await setNotificationPreference(userNotificationToken, newStatus); // Ensure this is awaited
+    }
+  };
+
+  // Fetch the initial state of notifications on component mount
+  useEffect(() => {
+    const fetchNotificationPreference = async () => {
+      const userNotificationToken = await AsyncStorage.getItem("expoPushToken");
+
+      if (userNotificationToken) {
+        try {
+          const response = await axios.get(
+            `${API_URL}/get-notification-preference`,
+            { params: { expoPushToken: userNotificationToken } } // Use params to send as a query
+          );
+          const { notificationsDisabled } = response.data;
+          setNotificationsDisabled(notificationsDisabled);
+        } catch (error) {
+          console.error("Error fetching notification preference:", error);
+        }
+      } else {
+        console.warn("Expo push token not found in AsyncStorage.");
+      }
+    };
+
+    fetchNotificationPreference();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -31,7 +111,6 @@ const NotificationsScreen = ({ navigation }) => {
         <Text style={styles.title}>Njoftimet</Text>
       </View>
       <View style={styles.card}>
-        {/* First Section: Notification Toggle */}
         <Text style={styles.subtitle}>Të gjitha njoftimet</Text>
 
         <View style={styles.section}>
@@ -42,50 +121,12 @@ const NotificationsScreen = ({ navigation }) => {
             <Text style={styles.sectionText}>Ndal njoftimet</Text>
           </View>
           <Switch
-            value={notificationsEnabled}
+            value={notificationsDisabled} // Switch is on when notifications are disabled
             onValueChange={toggleNotifications}
             trackColor={{ false: "#767577", true: "#06A85D" }}
-            thumbColor={notificationsEnabled ? "#fff" : "#f4f3f4"}
+            thumbColor={notificationsDisabled ? "#fff" : "#f4f3f4"}
           />
         </View>
-
-        {!notificationsEnabled && (
-          <View style={styles.radioGroup}>
-            <Text style={styles.subtitle}>Njofto për kohët e namazit</Text>
-
-            <TouchableOpacity
-              style={styles.radioButton}
-              onPress={() => handleAzanSelect("withAzan")}
-            >
-              <View style={styles.leftSection}>
-                <View style={styles.iconContainer}>
-                  <VolumeOnIcon style={styles.icon} />
-                </View>
-                <Text style={styles.radioText}>Me ezan</Text>
-              </View>
-              <View style={styles.radioCircle}>
-                {azanMode === "withAzan" && <View style={styles.selectedRb} />}
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.radioButton}
-              onPress={() => handleAzanSelect("withoutAzan")}
-            >
-              <View style={styles.leftSection}>
-                <View style={styles.iconContainer}>
-                  <VolumeOffIcon style={styles.icon} />
-                </View>
-                <Text style={styles.radioText}>Pa ezan</Text>
-              </View>
-              <View style={styles.radioCircle}>
-                {azanMode === "withoutAzan" && (
-                  <View style={styles.selectedRb} />
-                )}
-              </View>
-            </TouchableOpacity>
-          </View>
-        )}
       </View>
     </View>
   );

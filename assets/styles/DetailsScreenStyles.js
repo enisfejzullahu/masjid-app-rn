@@ -120,6 +120,22 @@ const styles = StyleSheet.create({
     color: "#333",
     marginLeft: 5,
   },
+  saveButton: {
+    backgroundColor: "#06A85D",
+    padding: 15,
+    borderRadius: 5,
+    alignItems: "center",
+    margin: 20,
+    position: "absolute",
+    bottom: 5,
+    left: 20,
+    right: 20,
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
 });
 
 export default styles;

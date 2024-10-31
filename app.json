@@ -1,30 +1,50 @@
 {
   "expo": {
     "name": "masjid-app-rn",
-    "slug": "masjid-app-rn",
+    "slug": "xhamia-ime",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo-xhamia-ime.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/logo-xhamia-ime.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.enis.masjid-app-rn",
+      "config": {}
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": ["NOTIFICATIONS"],
+      "config": {}
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-font"
-    ]
+    "notification": {
+      "icon": "./assets/logo-xhamia-ime.png",
+      "color": "#ffffff",
+      "ios": {
+        "bundleIdentifier": "com.enis.masjid-app-rn"
+      },
+      "android": {
+        "package": "com.yourname.masjid-app-rn",
+        "icon": "./assets/logo-xhamia-ime.png",
+        "color": "#ffffff"
+      }
+    },
+    "plugins": ["expo-font"],
+    "extra": {
+      "eas": {
+        "projectId": "92449bc6-cfc8-4565-a462-e2ced0221f7a"
+      }
+    },
+    "owner": "enisfe"
   }
 }

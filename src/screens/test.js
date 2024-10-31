@@ -1,370 +1,308 @@
-import React, { useState, useRef } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-  Keyboard,
-  Image,
-} from "react-native";
-import styles from "../../assets/styles/DonateScreenStyles";
-import { CardField, useConfirmPayment } from "@stripe/stripe-react-native";
 
-import { CircularProgress } from "react-native-svg-circular-progress";
-import { Picker } from "@react-native-picker/picker";
-import {
-  validateCardNumber,
-  validateCVC,
-  validateExpiryDate,
-  validateEmail,
-} from "../validation/CreditCardValidator";
 
-// Import SVG icons
+
+import React, { useState, useEffect } from "react";
+import { View, Text, TouchableOpacity } from "react-native";
+import styles from "../../assets/styles/DetailsScreenStyles";
+import { MaterialIcons } from "@expo/vector-icons";
+import * as Notifications from "expo-notifications";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
+import SegmentedControl from "@react-native-community/segmented-control";
+
+import prayerTimeData from "../database/PrayerTimesKS.json";
+
 import BackIconGreen from "../../assets/SVG/BackIconGreen";
 import ShapesTop from "../../assets/SVG/ShapesTop";
-import ShareIcon from "../../assets/SVG/ShareIcon";
-import SecureIcon from "../../assets/SVG/SecureIcon";
+import ImsakuSmall from "../../assets/SVG/ImsakuSmall";
+import AgimiSmall from "../../assets/SVG/AgimiSmall";
+import DrekaSmall from "../../assets/SVG/DrekaSmall";
+import IkindiaSmall from "../../assets/SVG/IkindiaSmall";
+import AkshamiSmall from "../../assets/SVG/AkshamiSmall";
+import JaciaSmall from "../../assets/SVG/JaciaSmall";
 
-// CustomInput component
-const CustomInput = ({
-  label,
-  requiredText,
-  placeholder,
-  containerStyle,
-  inputRef,
-  returnKeyType,
-  onSubmitEditing,
-  keyboardType,
-  value,
-  onChangeText,
-  error,
-  rightIcon,
-}) => (
-  <View style={[styles.inputContainer, containerStyle]}>
-    <Text style={styles.label}>
-      {label} <Text style={styles.requiredText}>{requiredText}</Text>
-    </Text>
-    <View style={styles.inputWrapper}>
-      <TextInput
-        style={[styles.input, error ? styles.inputError : null]}
-        placeholder={placeholder}
-        placeholderTextColor="#9B9B9B"
-        ref={inputRef}
-        returnKeyType={returnKeyType}
-        onSubmitEditing={onSubmitEditing}
-        keyboardType={keyboardType}
-        value={value}
-        onChangeText={onChangeText}
-      />
-      {rightIcon && <View style={styles.iconContainer}>{rightIcon}</View>}
-    </View>
-    {error ? <Text style={styles.errorText}>{error}</Text> : null}
-  </View>
-);
+const prayerTimes = [
+  { id: "imsaku", name: "Imsaku", icon: <ImsakuSmall width={28} /> },
+  { id: "agimi", name: "Agimi", icon: <AgimiSmall width={28} /> },
+  { id: "dreka", name: "Dreka", icon: <DrekaSmall width={28} /> },
+  { id: "ikindia", name: "Ikindia", icon: <IkindiaSmall width={28} /> },
+  { id: "akshami", name: "Akshami", icon: <AkshamiSmall width={28} /> },
+  { id: "jacia", name: "Jacia", icon: <JaciaSmall width={28} /> },
+];
 
-const DonateScreen = ({ route, navigation }) => {
-  const { title, goal, currentAmount, description } = route.params || {};
-  const progress = (currentAmount / goal) * 100;
-
-  // State hooks
-  const [amount, setAmount] = useState("");
-  const [selectedCountry, setSelectedCountry] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [expiryDate, setExpiryDate] = useState("");
-  const [cvc, setCvc] = useState("");
-  const [email, setEmail] = useState("");
-  const [errors, setErrors] = useState({
-    cardNumber: "",
-    expiryDate: "",
-    cvc: "",
-    email: "",
+const DetailsScreen = ({ route, navigation }) => {
+  const [expandedRow, setExpandedRow] = useState(null);
+  const [notificationSettings, setNotificationSettings] = useState({
+    imsaku: "doNotNotify",
+    agimi: "notify",
+    dreka: "notify",
+    ikindia: "notify",
+    akshami: "notify",
+    jacia: "notify",
   });
-  const [isFormVisible, setIsFormVisible] = useState(false); // New state for form visibility
-  const API_URL = "http://192.168.100.33:3000";
 
-  // Refs for focusing on the next input
-  const emailRef = useRef();
-  const cardNumberRef = useRef();
-  const expiryRef = useRef();
-  const cvcRef = useRef();
+  const [minutesBefore, setMinutesBefore] = useState({
+    imsaku: 0,
+    agimi: 5,
+    dreka: 5,
+    ikindia: 5,
+    akshami: 5,
+    jacia: 5,
+  });
+  const [settings, setSettings] = useState({});
 
-  const { confirmPayment } = useConfirmPayment();
+  useEffect(() => {
+    loadSettings();
+  }, []);
 
-  // Format amount to two decimal places
-  const formatAmount = (value) => {
-    if (!value) return "0.00";
-    return parseFloat(value).toFixed(2);
-  };
-
-  // Handlers for input changes
-  const handleCardNumberChange = (text) => {
-    const formattedText = text
-      .replace(/\s+/g, "")
-      .replace(/(\d{4})/g, "$1 ")
-      .trim();
-    setCardNumber(formattedText);
-
-    const numericValue = formattedText.replace(/\s+/g, "");
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      cardNumber: validateCardNumber(numericValue) ? "" : "Invalid card number",
-    }));
-  };
-
-  const handleExpiryDateChange = (text) => {
-    // Remove all non-numeric characters
-    const numericText = text.replace(/\D/g, "");
-
-    // Format as MM/YY
-    let formattedText = "";
-    if (numericText.length > 2) {
-      formattedText = `${numericText.slice(0, 2)}/${numericText.slice(2, 4)}`;
+  const loadSettings = async () => {
+    const storedSettings = await AsyncStorage.getItem("notificationSettings");
+    if (storedSettings) {
+      setSettings(JSON.parse(storedSettings));
     } else {
-      formattedText = numericText;
-    }
-
-    setExpiryDate(formattedText);
-
-    // Validate numeric part MMYY
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      expiryDate: validateExpiryDate(numericText.slice(0, 4))
-        ? ""
-        : "Invalid expiry date",
-    }));
-  };
-
-  const handleCvcChange = (text) => {
-    setCvc(text);
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      cvc: validateCVC(text) ? "" : "Invalid CVC",
-    }));
-  };
-
-  const handleEmailChange = (text) => {
-    setEmail(text);
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      email: validateEmail(text) ? "" : "Invalid email address",
-    }));
-  };
-
-  const handleAmountChange = (text) => {
-    setAmount(text);
-    if (text) {
-      setIsFormVisible(true);
-    } else {
-      setIsFormVisible(false);
-    }
-  };
-
-  const handleDonatePress = async () => {
-    try {
-      // Request the client secret from your server
-      const response = await fetch(
-        `${API_URL}/payments/create-payment-intent`,
-        {
-          // Update with your server URL
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount: parseFloat(amount) * 100 }), // Amount in the smallest currency unit (e.g., cents for EUR)
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Network response was not ok.");
-      }
-
-      const { clientSecret } = await response.json();
-
-      const { error, paymentIntent } = await confirmPayment(clientSecret, {
-        type: "Card", // Ensure this is provided
-        billingDetails: {
-          email: email,
-        },
+      const initialSettings = {};
+      Object.keys(prayerTimesData).forEach((prayer) => {
+        initialSettings[prayer] = { enabled: false, minutes: 0 }; // Default values
       });
+      setSettings(initialSettings);
+    }
+  };
 
-      if (error) {
-        console.error("Payment confirmation error:", error);
-        Alert.alert("Payment failed. Please try again.");
-      } else if (paymentIntent) {
-        console.log("Payment successful:", paymentIntent);
-        Alert.alert(
-          "Donation successful! You will receive your receipt shortly."
-        );
+  const saveSettings = async () => {
+    await AsyncStorage.setItem(
+      "notificationSettings",
+      JSON.stringify(settings)
+    );
+    console.log("Saving settings:", settings);
+    scheduleNotifications();
+  };
+
+  const toggleRow = (rowId) => {
+    setExpandedRow(expandedRow === rowId ? null : rowId);
+  };
+
+  useEffect(() => {
+    const requestNotificationPermissions = async () => {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== "granted") {
+        alert("You need to enable notifications for this app.");
       }
+    };
+
+    requestNotificationPermissions();
+  }, []);
+
+  const scheduleNotifications = async () => {
+    const currentTime = new Date();
+
+    // Cancel all previous notifications
+    await Notifications.cancelAllScheduledNotificationsAsync();
+
+    for (const prayer in settings) {
+      if (settings[prayer].enabled) {
+        const prayerTime = new Date();
+        const [hours, minutes] = prayerTimesData[prayer].split(":").map(Number);
+        prayerTime.setHours(hours, minutes, 0, 0);
+
+        // Calculate the notification time
+        const notificationTime = new Date(
+          prayerTime.getTime() - settings[prayer].minutes * 60000
+        );
+
+        console.log(`Scheduling notification for ${prayer}`);
+        console.log(`Prayer Time: ${prayerTime}`);
+        console.log(`Notification Time: ${notificationTime}`);
+
+        // Only schedule if the notification time is in the future
+        if (notificationTime > currentTime) {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: `Koha për namaz: ${prayer}`,
+              body: `Njoftim: ${prayer} do të fillojë në ${settings[prayer].minutes} minuta.`,
+            },
+            trigger: {
+              date: notificationTime,
+            },
+          });
+          console.log(
+            `Notification scheduled for ${prayer} at ${notificationTime}`
+          );
+        } else {
+          console.log(
+            `Notification time for ${prayer} is in the past, skipping.`
+          );
+        }
+      } else {
+        console.log(`${prayer} notifications are disabled.`);
+      }
+    }
+  };
+
+  const handleNotificationSelect = (rowId, type) => {
+    setNotificationSettings((prev) => ({
+      ...prev,
+      [rowId]: type,
+    }));
+  };
+
+  const toggleNotification = (prayer) => {
+    setSettings((prevSettings) => ({
+      ...prevSettings,
+      [prayer]: {
+        ...prevSettings[prayer],
+        enabled: !prevSettings[prayer]?.enabled,
+      },
+    }));
+  };
+
+  const handleMinutesChange = (prayer, value) => {
+    setSettings((prevSettings) => ({
+      ...prevSettings,
+      [prayer]: {
+        ...prevSettings[prayer],
+        minutes: Number(value),
+      },
+    }));
+  };
+
+  const handleSaveSettings = async () => {
+    // Save settings to AsyncStorage
+    try {
+      const settingsToSave = { notificationSettings, minutesBefore };
+      await AsyncStorage.setItem(
+        "notificationSettings",
+        JSON.stringify(settingsToSave)
+      );
+      console.log("Settings saved:", settingsToSave);
+
+      // Schedule notifications after saving settings
+      await scheduleNotifications();
     } catch (error) {
-      console.error("Payment error:", error);
-      Alert.alert("Payment error. Please try again.");
+      console.error("Error saving settings:", error);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <View style={styles.header}>
-        <ShapesTop width="100%" height={150} />
-        <Text style={styles.title}>Donacione</Text>
-      </View>
-
+    <View style={styles.container}>
       <TouchableOpacity
         style={styles.backIconContainer}
         onPress={() => navigation.goBack()}
       >
         <BackIconGreen style={styles.backIcon} />
       </TouchableOpacity>
+      <View style={styles.header}>
+        <ShapesTop width="100%" height={150} />
+        <Text style={styles.title}>Preferencat</Text>
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.subtitle}>Njoftimet</Text>
+        <Text style={styles.subtitle2}>Njofto për kohët e Namazit</Text>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollViewContent}
-        bounces={false}
-      >
-        <View style={styles.card}>
-          {/* Card Header */}
-          <View style={styles.topPart}>
-            <View style={styles.topLeftPart}>
-              <Text style={styles.cardTitle}>{title || "No Title"}</Text>
-              <TouchableOpacity style={styles.shareButton}>
-                <ShareIcon width={30} height={30} />
-                <Text style={styles.shareText}>Shpërndaje</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.progressCircleContainer}>
-              <CircularProgress
-                percentage={progress}
-                fillColor="#fff"
-                tintColor="#06A85D"
-                backgroundColor="#2CC484"
-                radius={100}
-                strokeWidth={37}
-              />
-              <View style={styles.centeredTextContainer}>
-                <Text style={styles.amountText}>${currentAmount || "0"}</Text>
-                <View style={styles.smalldivider} />
-                <Text style={styles.amountText}>${goal || "0"}</Text>
+        {prayerTimes.map((prayer) => (
+          <View key={prayer.id}>
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() => toggleRow(prayer.id)}
+            >
+              <View style={styles.rowLeft}>
+                {prayer.icon}
+                <Text style={styles.sectionText}>{prayer.name}</Text>
               </View>
-            </View>
-          </View>
-
-          {/* Description */}
-          <View style={styles.middlePart}>
-            <Text style={styles.text}>{description}</Text>
-          </View>
-
-          {/* Amount Input */}
-          <View style={styles.amountInputContainer}>
-            <TextInput
-              style={styles.amountInput}
-              placeholder="0.00"
-              keyboardType="numeric"
-              placeholderTextColor="#06A85D"
-              value={amount}
-              onChangeText={handleAmountChange}
-              onBlur={() => setAmount(formatAmount(amount))}
-              returnKeyType="done" // Show "Done" on the keyboard
-              onSubmitEditing={() => {
-                // Trigger an action when the return key is pressed
-                setAmount(formatAmount(amount)); // Ensure the amount is formatted
-                Keyboard.dismiss(); // Close the keyboard after pressing "Done"
-              }}
-            />
-
-            <Text style={styles.currencyText}>EUR</Text>
-          </View>
-          <Text style={styles.totalText}>Totali: {formatAmount(amount)}€</Text>
-
-          {/* Conditional rendering of Payment Form */}
-          {isFormVisible && (
-            <View style={styles.paymentForm}>
-              <Text style={styles.formTitle}>Dhuroni</Text>
-              <Text style={styles.formLabel}>
-                Sa para deshironi t'i dhuroni?
-              </Text>
-
-              {/* Custom Inputs */}
-              <CustomInput
-                label="Emri i dhuruesit"
-                requiredText="Kërkohet"
-                returnKeyType="next"
-                onSubmitEditing={() => emailRef.current.focus()}
+              <MaterialIcons
+                name={
+                  expandedRow === prayer.id
+                    ? "keyboard-arrow-up"
+                    : "keyboard-arrow-down"
+                }
+                size={30}
+                color="#06A85D"
               />
-              <CustomInput
-                label="Email"
-                requiredText="Kërkohet për faturë"
-                inputRef={emailRef}
-                returnKeyType="next"
-                onSubmitEditing={() => cardNumberRef.current.focus()}
-                value={email}
-                onChangeText={handleEmailChange}
-                error={errors.email}
-              />
-              <CardField
-                postalCodeEnabled={false}
-                placeholder={{
-                  number: "4242 4242 4242 4242",
-                }}
-                cardStyle={styles.cardField}
-                style={styles.cardFieldContainer}
-                onFocus={() => {}}
-              />
-              <CustomInput
-                label="Numri i karteles"
-                placeholder="1234 1234 1234 1234"
-                inputRef={cardNumberRef}
-                keyboardType="numeric"
-                value={cardNumber}
-                onChangeText={handleCardNumberChange}
-                error={errors.cardNumber}
-              />
+            </TouchableOpacity>
+            {expandedRow === prayer.id && (
+              <View style={styles.dropdown}>
+                <View style={styles.dropdownContent}>
+                  {/* Left Side: Notification Options */}
+                  <View>
+                    <TouchableOpacity
+                      style={[
+                        styles.optionRow,
+                        notificationSettings[prayer.id] === "notify"
+                          ? styles.selectedOption
+                          : null,
+                      ]}
+                      onPress={() =>
+                        handleNotificationSelect(prayer.id, "notify")
+                      }
+                    >
+                      <MaterialIcons
+                        name="notifications"
+                        size={24}
+                        color="#06A85D"
+                      />
+                      <Text style={styles.optionText}>Njofto</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.optionRow,
+                        notificationSettings[prayer.id] === "doNotNotify"
+                          ? styles.selectedOption
+                          : null,
+                      ]}
+                      onPress={() =>
+                        handleNotificationSelect(prayer.id, "doNotNotify")
+                      }
+                    >
+                      <MaterialIcons
+                        name="notifications-off"
+                        size={24}
+                        color="#06A85D"
+                      />
+                      <Text style={styles.optionText}>Mos Njofto</Text>
+                    </TouchableOpacity>
+                  </View>
 
-              <View style={styles.cvcExpiryContainer}>
-                <CustomInput
-                  label="Data e skadencës"
-                  placeholder="MM/YY"
-                  inputRef={expiryRef}
-                  value={expiryDate}
-                  keyboardType="numeric"
-                  onChangeText={handleExpiryDateChange}
-                  error={errors.expiryDate}
-                  containerStyle={{ flex: 1, marginRight: 10 }}
-                />
-                <CustomInput
-                  label="CVC"
-                  placeholder="123"
-                  inputRef={cvcRef}
-                  keyboardType="numeric"
-                  value={cvc}
-                  onChangeText={handleCvcChange}
-                  error={errors.cvc}
-                  containerStyle={{ flex: 1 }}
-                />
+                  {/* Right Side: Time Adjustment */}
+                  {notificationSettings[prayer.id] === "notify" && (
+                    <View style={styles.timeAdjustment}>
+                      <Text style={styles.timeAdjustmentText}>
+                        Njofto para kohës
+                      </Text>
+                      <View style={styles.timeAdjustmentControls}>
+                        <TouchableOpacity
+                          onPress={() => handleTimeAdjustment(prayer.id, -1)}
+                        >
+                          <MaterialIcons
+                            name="remove"
+                            size={24}
+                            color="#06A85D"
+                          />
+                        </TouchableOpacity>
+                        <Text style={styles.minutesText}>
+                          {minutesBefore[prayer.id] || 5}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => handleTimeAdjustment(prayer.id, 1)}
+                        >
+                          <MaterialIcons name="add" size={24} color="#06A85D" />
+                        </TouchableOpacity>
+                      </View>
+                      <Text style={styles.minutesLabel}>Minuta</Text>
+                    </View>
+                  )}
+                </View>
               </View>
-              <TouchableOpacity
-                style={styles.donateButton}
-                onPress={handleDonatePress}
-              >
-                <SecureIcon width={20} height={20} />
-
-                <Text style={styles.donateButtonText}>Dhuroni</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      </ScrollView>
-
-      {/* <View style={styles.securePaymentContainer}>
-        <Text style={styles.securePaymentText}>
-          Transaksioni juaj është i sigurt
-        </Text>
-      </View> */}
-    </KeyboardAvoidingView>
+            )}
+          </View>
+        ))}
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={handleSaveSettings}
+        >
+          <Text style={styles.saveButtonText}>Ruaj Preferencat</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
-export default DonateScreen;
+export default DetailsScreen;
+

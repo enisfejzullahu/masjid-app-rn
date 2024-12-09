@@ -42,11 +42,7 @@ const HistoryScreen = ({ route, navigation }) => {
   }, [mosqueId]);
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#06A85D" />
-      </View>
-    );
+    return <View style={styles.loadingContainer}></View>;
   }
 
   if (error) {

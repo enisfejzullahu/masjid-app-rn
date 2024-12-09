@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Switch,
+  Button,
+  ScrollView,
+  Alert,
+} from "react-native";
+import Slider from "@react-native-community/slider";
+import axios from "axios";
+// import { API_URL } from "../database/config";
+
 import styles from "../../assets/styles/DetailsScreenStyles";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
-import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
-
-import prayerTimeData from "../database/PrayerTimesKS.json";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import BackIconGreen from "../../assets/SVG/BackIconGreen";
 import ShapesTop from "../../assets/SVG/ShapesTop";
@@ -16,6 +26,7 @@ import IkindiaSmall from "../../assets/SVG/IkindiaSmall";
 import AkshamiSmall from "../../assets/SVG/AkshamiSmall";
 import JaciaSmall from "../../assets/SVG/JaciaSmall";
 
+// Define prayer times with corresponding icons
 const prayerTimes = [
   { id: "imsaku", name: "Imsaku", icon: <ImsakuSmall width={28} /> },
   { id: "agimi", name: "Agimi", icon: <AgimiSmall width={28} /> },
@@ -25,155 +36,297 @@ const prayerTimes = [
   { id: "jacia", name: "Jacia", icon: <JaciaSmall width={28} /> },
 ];
 
+// const API_URL = "http://192.168.100.33:3000"; //SHPI
+const API_URL = "https://masjid-app-7f88783a8532.herokuapp.com"; //FINAL
+// const API_URL = "http://192.168.100.7:3000"; // Banese
+
 const DetailsScreen = ({ route, navigation }) => {
-  const [expandedRow, setExpandedRow] = useState(null);
-  const [notificationSettings, setNotificationSettings] = useState({
-    imsaku: "doNotNotify",
-    agimi: "notify",
-    dreka: "notify",
-    ikindia: "notify",
-    akshami: "notify",
-    jacia: "notify",
-  });
+  const { mosqueId } = route.params;
 
-  const [minutesBefore, setMinutesBefore] = useState({
-    imsaku: 0,
-    agimi: 5,
-    dreka: 5,
-    ikindia: 5,
-    akshami: 5,
-    jacia: 5,
-  });
-  const [settings, setSettings] = useState({});
+  // State for global notification toggle
+  const [receivePrayerNotifications, setReceivePrayerNotifications] =
+    useState(true);
+  // State for individual prayer preferences
+  const [prayerPreferences, setPrayerPreferences] = useState(
+    prayerTimes.reduce((prefs, prayer) => {
+      prefs[prayer.id] = { receive: true, offset: 0 }; // Default: no notifications for each prayer
+      return prefs;
+    }, {})
+  );
+  const [receiveMosqueAnnouncements, setReceiveMosqueAnnouncements] =
+    useState(true);
+  const [receiveMosqueEvents, setReceiveMosqueEvents] = useState(true);
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
+  const [isModified, setIsModified] = useState(false);
 
-  const loadSettings = async () => {
-    const storedSettings = await AsyncStorage.getItem("notificationSettings");
-    if (storedSettings) {
-      setSettings(JSON.parse(storedSettings));
-    } else {
-      const initialSettings = {};
-      Object.keys(prayerTimesData).forEach((prayer) => {
-        initialSettings[prayer] = { enabled: false, minutes: 0 }; // Default values
-      });
-      setSettings(initialSettings);
-    }
-  };
+  // Fetch preferences from AsyncStorage using mosqueId
+  const loadPreferences = async () => {
+    try {
+      // Retrieve preferences for the current mosqueId
+      const savedPreferences = await AsyncStorage.getItem(
+        `prayerPreferences_${mosqueId}`
+      );
 
-  const saveSettings = async () => {
-    await AsyncStorage.setItem(
-      "notificationSettings",
-      JSON.stringify(settings)
-    );
-    console.log("Saving settings:", settings);
-    scheduleNotifications();
-  };
+      if (savedPreferences) {
+        const parsedPreferences = JSON.parse(savedPreferences);
 
-  const toggleRow = (rowId) => {
-    setExpandedRow(expandedRow === rowId ? null : rowId);
-  };
-
-  useEffect(() => {
-    const requestNotificationPermissions = async () => {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== "granted") {
-        alert("You need to enable notifications for this app.");
-      }
-    };
-
-    requestNotificationPermissions();
-  }, []);
-
-  const scheduleNotifications = async () => {
-    const currentTime = new Date();
-
-    // Cancel all previous notifications
-    await Notifications.cancelAllScheduledNotificationsAsync();
-
-    for (const prayer in settings) {
-      if (settings[prayer].enabled) {
-        const prayerTime = new Date();
-        const [hours, minutes] = prayerTimesData[prayer].split(":").map(Number);
-        prayerTime.setHours(hours, minutes, 0, 0);
-
-        // Calculate the notification time
-        const notificationTime = new Date(
-          prayerTime.getTime() - settings[prayer].minutes * 60000
+        // Set state from saved preferences
+        setReceivePrayerNotifications(
+          parsedPreferences.receivePrayerTimeReminders ?? true
+        );
+        setPrayerPreferences(
+          parsedPreferences.prayerTimesOffsets || {
+            imsaku: { offsetMinutes: 0, receive: false },
+            agimi: { offsetMinutes: 0, receive: false },
+            dreka: { offsetMinutes: 0, receive: false },
+            ikindia: { offsetMinutes: 0, receive: false },
+            akshami: { offsetMinutes: 0, receive: false },
+            jacia: { offsetMinutes: 0, receive: false },
+          }
         );
 
-        console.log(`Scheduling notification for ${prayer}`);
-        console.log(`Prayer Time: ${prayerTime}`);
-        console.log(`Notification Time: ${notificationTime}`);
-
-        // Only schedule if the notification time is in the future
-        if (notificationTime > currentTime) {
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: `Koha për namaz: ${prayer}`,
-              body: `Njoftim: ${prayer} do të fillojë në ${settings[prayer].minutes} minuta.`,
-            },
-            trigger: {
-              date: notificationTime,
-            },
-          });
-          console.log(
-            `Notification scheduled for ${prayer} at ${notificationTime}`
-          );
-        } else {
-          console.log(
-            `Notification time for ${prayer} is in the past, skipping.`
-          );
-        }
-      } else {
-        console.log(`${prayer} notifications are disabled.`);
+        setReceiveMosqueAnnouncements(
+          parsedPreferences.receiveAnnouncements ?? true
+        );
+        setReceiveMosqueEvents(parsedPreferences.receiveEvents ?? true);
       }
+    } catch (error) {
+      console.error("Error loading preferences:", error);
     }
   };
 
-  const handleNotificationSelect = (rowId, type) => {
-    setNotificationSettings((prev) => ({
-      ...prev,
-      [rowId]: type,
-    }));
-  };
+  // const getUserPreferences = async (expoPushToken, mosqueId) => {
+  //   try {
+  //     const response = await axios.post(`${API_URL}/getUserPrayerPreferences`, {
+  //       expoPushToken,
+  //       mosqueId,
+  //     });
+  //     const preferences = response.data;
+  //     // console.log("User Preferences:", preferences);
 
-  const toggleNotification = (prayer) => {
-    setSettings((prevSettings) => ({
-      ...prevSettings,
-      [prayer]: {
-        ...prevSettings[prayer],
-        enabled: !prevSettings[prayer]?.enabled,
-      },
-    }));
-  };
+  //     // Update state with fetched preferences
+  //     setReceivePrayerNotifications(preferences.receivePrayerTimeReminders);
+  //     setPrayerPreferences(preferences.prayerTimesOffsets);
+  //     setReceiveMosqueAnnouncements(preferences.receiveAnnouncements);
+  //     setReceiveMosqueEvents(preferences.receiveEvents);
+  //   } catch (error) {
+  //     console.error("Error fetching user preferences:", error);
+  //   }
+  // };
 
-  const handleMinutesChange = (prayer, value) => {
-    setSettings((prevSettings) => ({
-      ...prevSettings,
-      [prayer]: {
-        ...prevSettings[prayer],
-        minutes: Number(value),
-      },
-    }));
-  };
+  // Call loadPreferences on component mount
+  useEffect(() => {
+    loadPreferences();
 
-  const handleSaveSettings = async () => {
-    // Save settings to AsyncStorage
-    try {
-      const settingsToSave = { notificationSettings, minutesBefore };
-      await AsyncStorage.setItem(
-        "notificationSettings",
-        JSON.stringify(settingsToSave)
+    // // Fetch Expo push token and call getUserPreferences
+    // const fetchUserPreferences = async () => {
+    //   const tokenData = await Notifications.getExpoPushTokenAsync();
+    //   const expoPushToken = tokenData.data;
+    //   await getUserPreferences(expoPushToken, mosqueId);
+    // };
+
+    // fetchUserPreferences();
+  }, [mosqueId]);
+
+  // Toggle global notifications
+  const handleGlobalToggle = (value) => {
+    setReceivePrayerNotifications(value);
+    if (!value) {
+      setPrayerPreferences((prev) =>
+        Object.fromEntries(
+          Object.entries(prev).map(([key, val]) => [
+            key,
+            { ...val, receive: false },
+          ])
+        )
       );
-      console.log("Settings saved:", settingsToSave);
+    }
+  };
 
-      // Schedule notifications after saving settings
-      await scheduleNotifications();
+  // Toggle prayer-specific notifications
+  const handlePrayerToggle = (prayerId) => {
+    setPrayerPreferences((prev) => {
+      const updated = {
+        ...prev,
+        [prayerId]: {
+          ...prev[prayerId],
+          receive: !prev[prayerId].receive,
+        },
+      };
+      setIsModified(true); // Mark as modified
+      return updated;
+    });
+  };
+
+  // Update offset for each prayer
+  const handleOffsetChange = (prayerId, offset) => {
+    setPrayerPreferences((prev) => {
+      const updated = {
+        ...prev,
+        [prayerId]: {
+          ...prev[prayerId],
+          offset,
+        },
+      };
+      setIsModified(true); // Mark as modified
+      return updated;
+    });
+  };
+
+  const handleMosqueAnnouncementsToggle = () => {
+    try {
+      // Determine the new value
+      const newValue = !receiveMosqueAnnouncements;
+
+      // If the new value is different, toggle the state and mark it as modified
+      if (newValue !== receiveMosqueAnnouncements) {
+        setReceiveMosqueAnnouncements(newValue); // Toggle the local state
+        setIsModified(true); // Mark as modified
+      }
+
+      // No API call or AsyncStorage update here, just toggle the state and mark as modified
     } catch (error) {
-      console.error("Error saving settings:", error);
+      console.error("Error toggling announcements preference:", error);
+    }
+  };
+
+  const handleMosqueEventsToggle = () => {
+    try {
+      // Determine the new value
+      const newValue = !receiveMosqueEvents;
+
+      // If the new value is different, toggle the state and mark it as modified
+      if (newValue !== receiveMosqueEvents) {
+        setReceiveMosqueEvents(newValue); // Toggle the local state
+        setIsModified(true); // Mark as modified
+      }
+
+      // No API call or AsyncStorage update here, just toggle the state and mark as modified
+    } catch (error) {
+      console.error("Error toggling events preference:", error);
+    }
+  };
+
+  // Function to handle mosque events toggle
+  // const handleMosqueEventsToggle = async () => {
+  //   try {
+  //     // Toggle the local state
+  //     const newValue = !receiveMosqueEvents;
+  //     setReceiveMosqueEvents(newValue);
+
+  //     // Retrieve the Expo push token
+  //     const tokenData = await Notifications.getExpoPushTokenAsync();
+  //     const expoPushToken = tokenData.data;
+
+  //     // Send update request to backend
+  //     const response = await fetch(`${API_URL}/updateEventsPreference`, {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         expoPushToken,
+  //         mosqueId, // Directly using mosqueId from route.params
+  //         receiveEvents: newValue, // New value for receiveEvents
+  //       }),
+  //     });
+
+  //     const result = await response.json();
+  //     if (response.ok) {
+  //       console.log("Successfully updated events preference:", result);
+  //     } else {
+  //       console.error("Failed to update events preference:", result.error);
+  //     }
+
+  //     // Store the preference in AsyncStorage
+  //     await AsyncStorage.setItem(
+  //       `mosqueEvents_${mosqueId}`,
+  //       JSON.stringify({ receiveEvents: newValue })
+  //     );
+  //   } catch (error) {
+  //     console.error("Error updating events preference:", error);
+  //   }
+  // };
+
+  const handleSavePreferences = async () => {
+    try {
+      // Prepare the data structure to send to backend
+      const preferences = {
+        receivePrayerTimeReminders: receivePrayerNotifications,
+        prayerTimesOffsets: prayerPreferences,
+        receiveAnnouncements: receiveMosqueAnnouncements,
+        receiveEvents: receiveMosqueEvents,
+      };
+
+      // Retrieve the Expo push token
+      const tokenData = await Notifications.getExpoPushTokenAsync();
+      const expoPushToken = tokenData.data;
+
+      // Save to AsyncStorage as a cache
+      await AsyncStorage.setItem(
+        `prayerPreferences_${mosqueId}`,
+        JSON.stringify(preferences)
+      );
+
+      // Backend API URL
+      const url = `${API_URL}/savePreferences`;
+
+      // Send to backend via API
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          expoPushToken,
+          mosqueId,
+          settings: preferences,
+        }),
+      });
+
+      if (response.ok) {
+        // console.log("Preferences saved to backend:", preferences);
+
+        // Inform the user that settings will be applied from tomorrow
+        Alert.alert(
+          "Preferencat janë ruajtur me sukses",
+          "Nga nesër do të aplikohen preferencat tuaja!",
+          [{ text: "OK", onPress: () => navigation.navigate("Home") }]
+        );
+      } else {
+        const errorResponse = await response.json();
+        console.error("Failed to save preferences to backend", errorResponse);
+        Alert.alert(
+          "Error",
+          "Failed to save preferences. Please try again later."
+        );
+      }
+    } catch (error) {
+      console.error("Error saving preferences:", error);
+      Alert.alert("Error", "There was an issue saving your preferences.");
+    }
+  };
+
+  // Handle back navigation with confirmation
+  const handleBackPress = () => {
+    if (isModified) {
+      Alert.alert(
+        "A jeni të sigurtë?",
+        "Nuk keni ruajtur preferencat. A jeni të sigurtë që doni të largoheni pa i ruajtur?",
+        [
+          {
+            text: "Anulo",
+            onPress: () => null,
+            style: "cancel",
+          },
+          {
+            text: "Kalo pa ruajtur",
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
+    } else {
+      navigation.goBack();
     }
   };
 
@@ -181,7 +334,7 @@ const DetailsScreen = ({ route, navigation }) => {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.backIconContainer}
-        onPress={() => navigation.goBack()}
+        onPress={handleBackPress}
       >
         <BackIconGreen style={styles.backIcon} />
       </TouchableOpacity>
@@ -189,113 +342,87 @@ const DetailsScreen = ({ route, navigation }) => {
         <ShapesTop width="100%" height={150} />
         <Text style={styles.title}>Preferencat</Text>
       </View>
-      <View style={styles.card}>
-        <Text style={styles.subtitle}>Njoftimet</Text>
-        <Text style={styles.subtitle2}>Njofto për kohët e Namazit</Text>
 
-        {prayerTimes.map((prayer) => (
-          <View key={prayer.id}>
-            <TouchableOpacity
-              style={styles.row}
-              onPress={() => toggleRow(prayer.id)}
-            >
-              <View style={styles.rowLeft}>
-                {prayer.icon}
-                <Text style={styles.sectionText}>{prayer.name}</Text>
-              </View>
-              <MaterialIcons
-                name={
-                  expandedRow === prayer.id
-                    ? "keyboard-arrow-up"
-                    : "keyboard-arrow-down"
-                }
-                size={30}
-                color="#06A85D"
-              />
-            </TouchableOpacity>
-            {expandedRow === prayer.id && (
-              <View style={styles.dropdown}>
-                <View style={styles.dropdownContent}>
-                  {/* Left Side: Notification Options */}
-                  <View>
-                    <TouchableOpacity
-                      style={[
-                        styles.optionRow,
-                        notificationSettings[prayer.id] === "notify"
-                          ? styles.selectedOption
-                          : null,
-                      ]}
-                      onPress={() =>
-                        handleNotificationSelect(prayer.id, "notify")
-                      }
-                    >
-                      <MaterialIcons
-                        name="notifications"
-                        size={24}
-                        color="#06A85D"
-                      />
-                      <Text style={styles.optionText}>Njofto</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.optionRow,
-                        notificationSettings[prayer.id] === "doNotNotify"
-                          ? styles.selectedOption
-                          : null,
-                      ]}
-                      onPress={() =>
-                        handleNotificationSelect(prayer.id, "doNotNotify")
-                      }
-                    >
-                      <MaterialIcons
-                        name="notifications-off"
-                        size={24}
-                        color="#06A85D"
-                      />
-                      <Text style={styles.optionText}>Mos Njofto</Text>
-                    </TouchableOpacity>
-                  </View>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.card}>
+          <Text style={styles.subtitle}>Njoftimet</Text>
+          {/* <Text style={styles.subtitle2}>Njofto për kohët e Namazit</Text> */}
 
-                  {/* Right Side: Time Adjustment */}
-                  {notificationSettings[prayer.id] === "notify" && (
-                    <View style={styles.timeAdjustment}>
-                      <Text style={styles.timeAdjustmentText}>
-                        Njofto para kohës
-                      </Text>
-                      <View style={styles.timeAdjustmentControls}>
-                        <TouchableOpacity
-                          onPress={() => handleTimeAdjustment(prayer.id, -1)}
-                        >
-                          <MaterialIcons
-                            name="remove"
-                            size={24}
-                            color="#06A85D"
-                          />
-                        </TouchableOpacity>
-                        <Text style={styles.minutesText}>
-                          {minutesBefore[prayer.id] || 5}
-                        </Text>
-                        <TouchableOpacity
-                          onPress={() => handleTimeAdjustment(prayer.id, 1)}
-                        >
-                          <MaterialIcons name="add" size={24} color="#06A85D" />
-                        </TouchableOpacity>
-                      </View>
-                      <Text style={styles.minutesLabel}>Minuta</Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-            )}
+          {/* Global Toggle */}
+          <View style={styles.settingRow}>
+            <Text style={styles.settingLabel}>Njofto për kohët e Namazit </Text>
+            <Switch
+              value={receivePrayerNotifications}
+              onValueChange={handleGlobalToggle}
+            />
           </View>
-        ))}
-        <TouchableOpacity
-          style={styles.saveButton}
-          onPress={handleSaveSettings}
-        >
-          <Text style={styles.saveButtonText}>Ruaj Preferencat</Text>
-        </TouchableOpacity>
-      </View>
+
+          {/* Prayer-Specific Toggles */}
+          {receivePrayerNotifications &&
+            prayerTimes.map((prayer) => (
+              <View key={prayer.id} style={styles.prayerRow}>
+                <View style={styles.rowTop}>
+                  <View style={styles.rowLeft}>
+                    {prayer.icon}
+                    <Text style={styles.sectionText}>{prayer.name}</Text>
+                  </View>
+                  <Switch
+                    value={prayerPreferences[prayer.id].receive}
+                    onValueChange={() => handlePrayerToggle(prayer.id)}
+                  />
+                </View>
+                {prayerPreferences[prayer.id].receive && (
+                  <View style={styles.sliderContainer}>
+                    <Text style={styles.offsetLabel}>Njofto para kohës</Text>
+                    <Slider
+                      value={prayerPreferences[prayer.id].offset}
+                      onValueChange={(value) =>
+                        handleOffsetChange(prayer.id, value)
+                      }
+                      minimumValue={0}
+                      maximumValue={60}
+                      step={5}
+                      style={styles.offsetSlider}
+                    />
+                    <Text style={styles.offsetValue}>
+                      {prayerPreferences[prayer.id].offset} min
+                    </Text>
+                  </View>
+                )}
+              </View>
+            ))}
+
+          {/* Mosque Announcements Toggle */}
+          <View style={styles.settingRow}>
+            <Text style={styles.settingLabel}>
+              Njofto për njoftimet e xhamisë
+            </Text>
+            <Switch
+              value={receiveMosqueAnnouncements}
+              onValueChange={handleMosqueAnnouncementsToggle}
+            />
+          </View>
+
+          {/* Mosque Events Toggle */}
+          <View style={styles.settingRow}>
+            <Text style={styles.settingLabel}>
+              Njofto për eventet e xhamisë
+            </Text>
+            <Switch
+              value={receiveMosqueEvents}
+              onValueChange={handleMosqueEventsToggle}
+            />
+          </View>
+
+          {/* Save Button */}
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={handleSavePreferences}
+          >
+            <Text style={styles.saveButtonText}>Ruaj Preferencat</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </View>
   );
 };

@@ -11,6 +11,9 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import moment from "moment";
+import axios from "axios";
+import * as Notifications from "expo-notifications";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import styles from "../../assets/styles/MosqueScreenStyles";
 
@@ -36,6 +39,12 @@ import {
 } from "../database/Api";
 import storage from "../database/Storage";
 import PrayerTimesKS from "../database/PrayerTimesKS.json";
+
+// import { API_URL } from "../database/Api";
+
+// const API_URL = "http://192.168.100.33:3000"; //SHPI
+const API_URL = "https://masjid-app-7f88783a8532.herokuapp.com"; //FINAL
+// const API_URL = "http://192.168.100.7:3000"; // Banese
 
 const getCurrentPrayerTime = (todayTimes, tomorrowTimes) => {
   const now = new Date();
@@ -279,8 +288,14 @@ const MosqueScreen = ({ route, navigation }) => {
   }, [mosqueId]);
 
   // Your `handleSavePress` function should handle setting the favorite correctly:
-
   const handleSavePress = async () => {
+    // Retrieve the Expo push token
+    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const expoPushToken = tokenData.data; // Extract the token string directly
+
+    // Store the push token locally
+    await AsyncStorage.setItem("expoPushToken", expoPushToken);
+
     try {
       // Load existing favorites or initialize with an empty array if not found
       let favorites = [];
@@ -301,31 +316,130 @@ const MosqueScreen = ({ route, navigation }) => {
         // Remove from favorites
         updatedFavorites = favorites.filter((id) => id !== mosqueId);
         setIsFavorite(false);
-        setMessageText("Xhamia është hequr nga të preferuarat tuaja.");
+        // setMessageText("Xhamia është hequr nga të preferuarat tuaja."); // Update message
+
+        // Call API to remove favorite
+        await handleRemovePress(); // You can refactor the API call to be inside this function
       } else {
         // Add to favorites
         updatedFavorites = [...favorites, mosqueId];
         setIsFavorite(true);
+        // setMessageText("Xhamia është shtuar në të preferuarat tuaja."); // Update message
+
+        // Call backend API to save favorite
+        try {
+          const response = await axios.post(`${API_URL}/tokens/addFavorite`, {
+            expoPushToken,
+            mosqueId,
+          });
+          console.log("Response from backend:", response.data);
+        } catch (apiError) {
+          console.error("Error calling add favorite API:", apiError);
+        }
       }
 
-      // Save updated favorites to storage
+      // Save updated favorites to local storage
       await storage.save({ key: "favorites", data: updatedFavorites });
 
       // Show a temporary success message
       setShowMessage(true);
       setTimeout(() => setShowMessage(false), 3000);
 
+      // Navigate to Home
+      navigation.navigate("Home");
+
       // Re-check the favorite status
       checkIfFavorite(mosqueId);
-
-      // Optionally navigate to the Home screen if adding to favorites
-      if (!isFavorite) {
-        navigation.navigate("Home");
-      }
     } catch (error) {
       console.error("Error updating favorites:", error);
     }
   };
+
+  const handleRemovePress = async () => {
+    try {
+      // Retrieve the stored Expo push token
+      const expoPushToken = await AsyncStorage.getItem("expoPushToken");
+      if (!expoPushToken) {
+        console.error("No push token found");
+        return;
+      }
+
+      // Call the API to remove the favorite mosque
+      const response = await axios.delete(`${API_URL}/tokens/removeFavorite`, {
+        data: {
+          expoPushToken,
+          mosqueId,
+        },
+      });
+
+      console.log(response.data.message); // Show success message
+
+      // Optionally update local storage
+      let favorites = await storage.load({ key: "favorites" });
+      favorites = favorites.filter((id) => id !== mosqueId);
+      await storage.save({ key: "favorites", data: favorites });
+
+      // // Show a success message
+      // setShowMessage(true);
+      // setMessageText("Xhamia është hequr nga të preferuarat tuaja."); // Set removal message
+      // setTimeout(() => setShowMessage(false), 3000);
+
+      // Navigate to Home
+      navigation.navigate("Home");
+
+      // Re-check the favorite status
+      checkIfFavorite(mosqueId);
+    } catch (error) {
+      console.error("Error removing favorite API:", error);
+    }
+  };
+
+  // const handleSavePress = async () => {
+  //   try {
+  //     // Load existing favorites or initialize with an empty array if not found
+  //     let favorites = [];
+  //     try {
+  //       favorites = await storage.load({ key: "favorites" });
+  //     } catch (error) {
+  //       if (error.name === "NotFoundError") {
+  //         await storage.save({ key: "favorites", data: [] });
+  //       } else {
+  //         console.error("Error loading favorites:", error);
+  //         return;
+  //       }
+  //     }
+
+  //     // Toggle favorite status
+  //     let updatedFavorites;
+  //     if (isFavorite) {
+  //       // Remove from favorites
+  //       updatedFavorites = favorites.filter((id) => id !== mosqueId);
+  //       setIsFavorite(false);
+  //       setMessageText("Xhamia është hequr nga të preferuarat tuaja.");
+  //     } else {
+  //       // Add to favorites
+  //       updatedFavorites = [...favorites, mosqueId];
+  //       setIsFavorite(true);
+  //     }
+
+  //     // Save updated favorites to storage
+  //     await storage.save({ key: "favorites", data: updatedFavorites });
+
+  //     // Show a temporary success message
+  //     setShowMessage(true);
+  //     setTimeout(() => setShowMessage(false), 3000);
+
+  //     // Re-check the favorite status
+  //     checkIfFavorite(mosqueId);
+
+  //     // Optionally navigate to the Home screen if adding to favorites
+  //     if (!isFavorite) {
+  //       navigation.navigate("Home");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error updating favorites:", error);
+  //   }
+  // };
 
   if (error) {
     return (
@@ -341,11 +455,7 @@ const MosqueScreen = ({ route, navigation }) => {
     !currentPrayerTime ||
     !nextPrayerTime
   ) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#06A85D" />
-      </View>
-    );
+    return <View style={styles.loadingContainer}></View>;
   }
 
   return (
@@ -359,16 +469,18 @@ const MosqueScreen = ({ route, navigation }) => {
           >
             <BackIcon style={styles.backIcon} />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuIconContainer}
-            onPress={handleSavePress}
-          >
+          <View style={styles.menuIconContainer}>
             {isFavorite ? (
-              <SaveFilledIcon style={styles.saveIcon} />
+              <TouchableOpacity onPress={handleRemovePress}>
+                <SaveFilledIcon style={styles.saveIcon} />
+              </TouchableOpacity>
             ) : (
-              <SaveIcon style={styles.saveIcon} />
+              <TouchableOpacity onPress={handleSavePress}>
+                <SaveIcon style={styles.saveIcon} />
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
+          </View>
+
           {showMessage && (
             <View style={styles.messageContainer}>
               <Text style={styles.messageText}>{messageText} </Text>

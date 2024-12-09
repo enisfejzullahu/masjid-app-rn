@@ -4,6 +4,7 @@
     "slug": "xhamia-ime",
     "version": "1.0.0",
     "orientation": "portrait",
+    "newArchEnabled": true,
     "icon": "./assets/logo-xhamia-ime.png",
     "userInterfaceStyle": "light",
     "splash": {

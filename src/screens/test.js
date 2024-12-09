@@ -1,13 +1,9 @@
-
-
-
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import styles from "../../assets/styles/DetailsScreenStyles";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
-import SegmentedControl from "@react-native-community/segmented-control";
 
 import prayerTimeData from "../database/PrayerTimesKS.json";
 
@@ -91,51 +87,7 @@ const DetailsScreen = ({ route, navigation }) => {
     requestNotificationPermissions();
   }, []);
 
-  const scheduleNotifications = async () => {
-    const currentTime = new Date();
-
-    // Cancel all previous notifications
-    await Notifications.cancelAllScheduledNotificationsAsync();
-
-    for (const prayer in settings) {
-      if (settings[prayer].enabled) {
-        const prayerTime = new Date();
-        const [hours, minutes] = prayerTimesData[prayer].split(":").map(Number);
-        prayerTime.setHours(hours, minutes, 0, 0);
-
-        // Calculate the notification time
-        const notificationTime = new Date(
-          prayerTime.getTime() - settings[prayer].minutes * 60000
-        );
-
-        console.log(`Scheduling notification for ${prayer}`);
-        console.log(`Prayer Time: ${prayerTime}`);
-        console.log(`Notification Time: ${notificationTime}`);
-
-        // Only schedule if the notification time is in the future
-        if (notificationTime > currentTime) {
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: `Koha për namaz: ${prayer}`,
-              body: `Njoftim: ${prayer} do të fillojë në ${settings[prayer].minutes} minuta.`,
-            },
-            trigger: {
-              date: notificationTime,
-            },
-          });
-          console.log(
-            `Notification scheduled for ${prayer} at ${notificationTime}`
-          );
-        } else {
-          console.log(
-            `Notification time for ${prayer} is in the past, skipping.`
-          );
-        }
-      } else {
-        console.log(`${prayer} notifications are disabled.`);
-      }
-    }
-  };
+  
 
   const handleNotificationSelect = (rowId, type) => {
     setNotificationSettings((prev) => ({
@@ -268,7 +220,7 @@ const DetailsScreen = ({ route, navigation }) => {
                       </Text>
                       <View style={styles.timeAdjustmentControls}>
                         <TouchableOpacity
-                          onPress={() => handleTimeAdjustment(prayer.id, -1)}
+                          onPress={() => handleMinutesChange()}
                         >
                           <MaterialIcons
                             name="remove"
@@ -280,7 +232,7 @@ const DetailsScreen = ({ route, navigation }) => {
                           {minutesBefore[prayer.id] || 5}
                         </Text>
                         <TouchableOpacity
-                          onPress={() => handleTimeAdjustment(prayer.id, 1)}
+                          onPress={() => handleMinutesChange(prayer.id, 1)}
                         >
                           <MaterialIcons name="add" size={24} color="#06A85D" />
                         </TouchableOpacity>
@@ -305,4 +257,3 @@ const DetailsScreen = ({ route, navigation }) => {
 };
 
 export default DetailsScreen;
-

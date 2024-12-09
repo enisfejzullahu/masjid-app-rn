@@ -4,12 +4,15 @@ import styles from "../../assets/styles/NotificationsScreenStyles";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
+import { getExpoPushTokenAsync } from 'expo-notifications';
+
 
 import BackIconGreen from "../../assets/SVG/BackIconGreen";
 import ShapesTop from "../../assets/SVG/ShapesTop";
 import BellFilledIcon from "../../assets/SVG/BellFilledIcon";
+// import {API_URL} from "../database/Api";
 
-// const API_URL = "http://192.168.100.33:3000"; SHPI
+// // const API_URL = "http://192.168.100.33:3000"; SHPI
 const API_URL = "https://masjid-app-7f88783a8532.herokuapp.com"; //FINAL
 // const API_URL = "http://192.168.100.7:3000"; // Banese
 

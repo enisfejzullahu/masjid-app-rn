@@ -39,11 +39,7 @@ const DonationsScreen = ({ route, navigation }) => {
   }, [mosqueId]);
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#06A85D" />
-      </View>
-    );
+    return <View style={styles.loadingContainer}></View>;
   }
 
   if (error) {
@@ -88,7 +84,7 @@ const DonationsScreen = ({ route, navigation }) => {
                   title: donation.title,
                   goal: donation.goal,
                   currentAmount: donation.currentAmount,
-                  description: donation.description
+                  description: donation.description,
                 })
               }
             >
@@ -99,7 +95,7 @@ const DonationsScreen = ({ route, navigation }) => {
                 <View style={styles.progressCircleContainer}>
                   <CircularProgress
                     percentage={progress}
-                    tintColor="#FFFFFF" // Active color (white)
+                    tintColor="#fff" // Active color (white)
                     rotation={0} // Ensures the progress starts from the top (12 o'clock)
                   />
                   <View style={styles.centeredTextContainer}>

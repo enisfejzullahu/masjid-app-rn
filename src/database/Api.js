@@ -2,7 +2,7 @@
 //const API_URL = 'http://10.0.2.2:3000';
 
 // For iOS Simulator or change to your computer's local IP address for physical devices
-// const API_URL = "http://192.168.100.33:3000"; SHPI
+// const API_URL = "http://192.168.100.33:3000"; // SHPI
 const API_URL = "https://masjid-app-7f88783a8532.herokuapp.com"; //FINAL
 // const API_URL = "http://192.168.100.7:3000"; // Banese
 
@@ -235,7 +235,8 @@ export const saveTokenToBackend = async (userId, token) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, expoPushToken: token }),
     });
+    console.log("Token Saved Successfully to backend!");
   } catch (error) {
-    console.error("Error saving push token:", error);
+    console.error("Error saving push tokenn:", error);
   }
 };

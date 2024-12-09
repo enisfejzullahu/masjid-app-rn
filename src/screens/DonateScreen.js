@@ -22,6 +22,7 @@ import {
   validateExpiryDate,
   validateEmail,
 } from "../validation/CreditCardValidator";
+import { API_URL } from "../database/Api";
 
 // Import SVG icons
 import BackIconGreen from "../../assets/SVG/BackIconGreen";
@@ -84,7 +85,7 @@ const DonateScreen = ({ route, navigation }) => {
     email: "",
   });
   const [isFormVisible, setIsFormVisible] = useState(false); // New state for form visibility
-  const API_URL = "http://192.168.100.33:3000";
+  // const API_URL = "http://192.168.100.33:3000";
 
   // Refs for focusing on the next input
   const emailRef = useRef();
@@ -171,7 +172,7 @@ const DonateScreen = ({ route, navigation }) => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount: parseFloat(amount)}), // Amount in cents
+          body: JSON.stringify({ amount: parseFloat(amount) }), // Amount in cents
         }
       );
 
@@ -241,6 +242,7 @@ const DonateScreen = ({ route, navigation }) => {
               <CircularProgress
                 percentage={progress}
                 fillColor="#fff"
+                donutColor="#06A85D"
                 tintColor="#06A85D"
                 backgroundColor="#2CC484"
                 radius={100}
